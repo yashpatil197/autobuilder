@@ -98,49 +98,68 @@
         <!-- Pricing -->
         <section class="section section-dark" id="pricing-section">
             <h2 class="section-title">Simple, Transparent <span class="gradient-text">Pricing</span></h2>
-            <p class="section-sub">Start free for 30 days. Upgrade anytime.</p>
+            <p class="section-sub">Create 2 sites free. Upgrade when you're ready.</p>
+            <div class="billing-toggle" id="landing-billing-toggle">
+                <button class="billing-btn active"
+                    onclick="document.querySelectorAll('#landing-billing-toggle .billing-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.landing-price').forEach(p=>p.textContent=p.dataset.mo)">Monthly</button>
+                <button class="billing-btn"
+                    onclick="document.querySelectorAll('#landing-billing-toggle .billing-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.landing-price').forEach(p=>p.textContent=p.dataset.qtr)">Quarterly
+                    <small>-10%</small></button>
+                <button class="billing-btn"
+                    onclick="document.querySelectorAll('#landing-billing-toggle .billing-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.landing-price').forEach(p=>p.textContent=p.dataset.yr)">Yearly
+                    <small>-25%</small></button>
+            </div>
             <div class="pricing-grid">
-                <div class="pricing-card">
+                <div class="pricing-card" onmousemove="Dashboard.trackGlow(event,this)"
+                    onmouseleave="Dashboard.resetGlow(this)">
+                    <div class="pricing-glow"></div>
                     <div class="pricing-name">Starter</div>
-                    <div class="pricing-price">₹100<span>/mo</span></div>
+                    <div class="pricing-price"><span class="landing-price" data-mo="₹100" data-qtr="₹270"
+                            data-yr="₹900">₹100</span><span>/mo</span></div>
+                    <div class="pricing-sites">3 Sites</div>
                     <ul class="pricing-features">
-                        <li>✓ 1 Website</li>
+                        <li>✓ 3 Pages per site</li>
                         <li>✓ AI Generation</li>
                         <li>✓ Basic Editor</li>
                         <li>✓ Free Subdomain</li>
                         <li>✓ SSL Certificate</li>
                     </ul>
-                    <button class="btn btn-outline btn-block" onclick="App.showPage('page-auth','signup')">Start Free
-                        Trial</button>
+                    <button class="btn btn-outline btn-block" onclick="App.showPage('page-auth','signup')">Start
+                        Free</button>
                 </div>
-                <div class="pricing-card popular">
-                    <div class="popular-badge">Most Popular</div>
+                <div class="pricing-card" onmousemove="Dashboard.trackGlow(event,this)"
+                    onmouseleave="Dashboard.resetGlow(this)">
+                    <div class="pricing-glow"></div>
                     <div class="pricing-name">Pro</div>
-                    <div class="pricing-price">₹200<span>/mo</span></div>
+                    <div class="pricing-price"><span class="landing-price" data-mo="₹200" data-qtr="₹540"
+                            data-yr="₹1,800">₹200</span><span>/mo</span></div>
+                    <div class="pricing-sites">10 Sites</div>
                     <ul class="pricing-features">
-                        <li>✓ 5 Websites</li>
-                        <li>✓ Advanced AI</li>
+                        <li>✓ 10 Pages per site</li>
                         <li>✓ Full Visual Editor</li>
                         <li>✓ Custom Domain</li>
-                        <li>✓ Priority Support</li>
                         <li>✓ Analytics Dashboard</li>
+                        <li>✓ All Themes</li>
                     </ul>
-                    <button class="btn btn-primary btn-block" onclick="App.showPage('page-auth','signup')">Start Free
-                        Trial</button>
+                    <button class="btn btn-outline btn-block" onclick="App.showPage('page-auth','signup')">Start
+                        Free</button>
                 </div>
-                <div class="pricing-card">
+                <div class="pricing-card" onmousemove="Dashboard.trackGlow(event,this)"
+                    onmouseleave="Dashboard.resetGlow(this)">
+                    <div class="pricing-glow"></div>
                     <div class="pricing-name">Agency</div>
-                    <div class="pricing-price">₹300<span>/mo</span></div>
+                    <div class="pricing-price"><span class="landing-price" data-mo="₹300" data-qtr="₹810"
+                            data-yr="₹2,700">₹300</span><span>/mo</span></div>
+                    <div class="pricing-sites">Unlimited Sites</div>
                     <ul class="pricing-features">
-                        <li>✓ Unlimited Websites</li>
-                        <li>✓ White-label</li>
-                        <li>✓ Full Visual Editor</li>
-                        <li>✓ Custom Domains</li>
-                        <li>✓ Team Collaboration</li>
+                        <li>✓ Unlimited Pages</li>
                         <li>✓ Code Export</li>
+                        <li>✓ Team Collaboration</li>
+                        <li>✓ Custom Domains</li>
+                        <li>✓ Components Library</li>
                     </ul>
-                    <button class="btn btn-outline btn-block" onclick="App.showPage('page-auth','signup')">Start Free
-                        Trial</button>
+                    <button class="btn btn-outline btn-block" onclick="App.showPage('page-auth','signup')">Start
+                        Free</button>
                 </div>
             </div>
         </section>
@@ -292,6 +311,17 @@
         </div>
     </section>
 
+    <!-- ═══════════════ CHOICE CANVAS ═══════════════ -->
+    <section id="page-choice-canvas" class="page">
+        <div class="choice-canvas-wrap">
+            <button class="btn btn-ghost choice-back" onclick="App.showPage('page-dashboard')">← Back</button>
+            <h1 class="choice-title">Choose Your <span class="gradient-text">Design Style</span></h1>
+            <p class="choice-sub">We generated 5 unique variations from your description. Pick the one that speaks to
+                you.</p>
+            <div class="choice-grid" id="choice-grid"></div>
+        </div>
+    </section>
+
     <!-- ═══════════════ DASHBOARD ═══════════════ -->
     <section id="page-dashboard" class="page">
         <div class="dash-layout">
@@ -313,7 +343,7 @@
                     <div class="trial-bar">
                         <div class="trial-bar-fill" id="trial-bar-fill"></div>
                     </div>
-                    <button class="btn btn-primary btn-sm btn-block">Upgrade
+                    <button class="btn btn-primary btn-sm btn-block" onclick="Dashboard.showUpgrade()">Upgrade
                         Now</button>
                 </div>
                 <div class="dash-user-widget">
@@ -385,6 +415,7 @@
                         <h3>Current Plan: <span id="current-plan-name" class="gradient-text">Free Trial</span></h3>
                         <p id="current-plan-desc">Your trial expires on <span id="trial-end-date">—</span></p>
                     </div>
+                    <div id="dash-pricing"></div>
                 </div>
                 <!-- Settings Tab -->
                 <div class="dash-tab" id="dash-settings">
@@ -602,7 +633,7 @@
                         class="material-icons-round">close</span></button>
             </div>
             <div class="modal-body">
-                <div class="pricing-grid compact" id="upgrade-pricing"></div>
+                <div id="upgrade-pricing"></div>
             </div>
         </div>
     </div>
