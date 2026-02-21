@@ -20,6 +20,7 @@ const App = {
 const state = {
   isVerified: false,
   plan: 'trial',
+  billingPeriod: 'monthly',
   currentSite: null,
   activePage: 'home',
   clipboard: null
@@ -157,7 +158,7 @@ const Auth = {
       state.isVerified = true;
       state.plan = user.plan || 'trial';
       showToast(`Signed in with ${provider} 🎉`, 'success');
-      App.showPage('page-onboarding'); Onboard.reset();
+      App.showPage('page-dashboard');
     } else { Verification.open(email); }
   },
   logout() { App.showPage('page-landing'); showToast('Logged out', 'info'); },
@@ -220,13 +221,22 @@ const Onboard = {
       if (i >= steps.length) {
         clearInterval(interval);
         setTimeout(() => {
-          const site = AIEngine.generate(this.data);
           const user = Store.get('currentUser');
-          if (user) { user.sites.push(site); Store.set('currentUser', user); }
-          state.currentSite = site;
-          Editor.loadSite(site);
-          App.showPage('page-editor');
-          showToast('Website generated! 🎉', 'success');
+          // ── Paywall: 2 free sites, 3rd requires subscription ──
+          const maxFree = 2;
+          const hasSub = SiteTimer.hasActiveSubscription(user);
+          const planSlots = { trial: maxFree, starter: 3, pro: 10, agency: 999 };
+          const maxSites = hasSub ? (planSlots[user.plan] || maxFree) : maxFree;
+          if (user && user.sites.length >= maxSites) {
+            App.showPage('page-dashboard');
+            Dashboard.showUpgrade();
+            showToast(`You've reached the ${hasSub ? user.plan : 'free'} limit of ${maxSites} sites. Upgrade to create more!`, 'error');
+            return;
+          }
+          // ── Generate 5 variations and show Choice Canvas ──
+          const variations = AIEngine.generateVariations(this.data);
+          ChoiceCanvas.show(variations, this.data);
+          App.showPage('page-choice-canvas');
         }, 600);
         return;
       }
@@ -277,18 +287,19 @@ const AIEngine = {
     const theme = PresetThemes.presets[designStyle] || PresetThemes.presets.modern;
     const templates = { business: this.businessTpl, portfolio: this.portfolioTpl, ecommerce: this.ecommerceTpl, blog: this.blogTpl, restaurant: this.restaurantTpl, saas: this.saasTpl };
     const tplFn = templates[bizType] || this.businessTpl;
-    const sectionsArr = tplFn.call(this, prompt, theme);
+    const ctx = this.contextContent(prompt, bizType);
+    const sectionsArr = tplFn.call(this, prompt, theme, ctx);
     const sectionsMap = {};
     sectionsArr.forEach(s => { sectionsMap[s.id] = s; });
     const sectionIds = sectionsArr.map(s => s.id);
 
     return {
-      id: 'site_' + Date.now(),
-      name: this.extractName(prompt, bizType),
-      slug: this.extractName(prompt, bizType).toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      id: 'site_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      name: ctx.brandName,
+      slug: ctx.brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       version: 1,
       status: 'draft',
-      seo: { title: this.extractName(prompt, bizType), description: prompt.substring(0, 160), ogImage: '' },
+      seo: { title: ctx.brandName, description: prompt.substring(0, 160), ogImage: '' },
       globalStyles: {
         colors: { primary: theme.primary, secondary: theme.secondary || theme.primary, bg: theme.bg, text: theme.text, accent: theme.accent },
         typography: { headingFont: theme.headingFont || 'Inter', bodyFont: theme.bodyFont || 'Inter', baseFontSize: 16 },
@@ -305,6 +316,208 @@ const AIEngine = {
       published: false, publishedUrl: null, publishedVersions: [],
       createdAt: new Date().toISOString()
     };
+  },
+  // ── Generate 5 structurally unique template layouts ──
+  generateVariations(data) {
+    const { bizType, prompt } = data;
+    const ctx = this.contextContent(prompt, bizType);
+    const presets = ['minimal', 'dark', 'playful', 'elegant', 'bold'];
+    const templates = [
+      {
+        label: 'Classic',
+        desc: 'Hero → Features → About → Testimonials → CTA → Footer',
+        build: (t, id) => [
+          this._s(id + 's1', 'hero', { heading: ctx.hero, subheading: ctx.sub, cta: 'Get Started', cta2: 'Learn More' }, t),
+          this._s(id + 's2', 'features', { heading: 'Why Choose Us', items: ctx.features }, t),
+          this._s(id + 's3', 'about', { heading: `About ${ctx.brandName}`, text: ctx.about, image: '🏢' }, t),
+          this._s(id + 's4', 'testimonials', { heading: 'What Clients Say', items: ctx.testimonials }, t),
+          this._s(id + 's5', 'cta', { heading: ctx.cta, subheading: ctx.ctaSub, cta: 'Start Now' }, t),
+          this._s(id + 's6', 'footer', { brand: ctx.brandName, links: ['About', 'Services', 'Contact', 'Privacy'] }, t)
+        ]
+      },
+      {
+        label: 'Showcase',
+        desc: 'Hero → Gallery → About → Contact → Footer',
+        build: (t, id) => [
+          this._s(id + 's1', 'hero', { heading: ctx.hero, subheading: ctx.sub, cta: 'View Work', cta2: 'Get in Touch' }, t),
+          this._s(id + 's2', 'gallery', { heading: 'Our Work', items: ctx.features.map(f => f.icon + ' ' + f.title) }, t),
+          this._s(id + 's3', 'about', { heading: `Our Story`, text: ctx.about, image: '🎯' }, t),
+          this._s(id + 's4', 'testimonials', { heading: 'Client Feedback', items: ctx.testimonials }, t),
+          this._s(id + 's5', 'contact', { heading: 'Get in Touch', subheading: ctx.ctaSub }, t),
+          this._s(id + 's6', 'footer', { brand: ctx.brandName, links: ['Portfolio', 'About', 'Contact', 'Blog'] }, t)
+        ]
+      },
+      {
+        label: 'Conversion',
+        desc: 'Hero → Features → Pricing → CTA → Footer',
+        build: (t, id) => [
+          this._s(id + 's1', 'hero', { heading: ctx.hero, subheading: ctx.sub, cta: 'Start Free Trial', cta2: 'See Plans' }, t),
+          this._s(id + 's2', 'features', { heading: 'Powerful Features', items: ctx.features }, t),
+          this._s(id + 's3', 'pricing', {
+            heading: 'Simple Pricing', plans: [
+              { name: 'Basic', price: '₹499/mo', features: ['Core Features', '1 User', 'Email Support'] },
+              { name: 'Pro', price: '₹1,499/mo', features: ['All Features', '10 Users', 'Priority Support', 'API Access'], popular: true },
+              { name: 'Enterprise', price: '₹3,999/mo', features: ['Unlimited', 'Custom Setup', '24/7 Support', 'SLA'] }
+            ]
+          }, t),
+          this._s(id + 's4', 'cta', { heading: ctx.cta, subheading: ctx.ctaSub, cta: 'Get Started Free' }, t),
+          this._s(id + 's5', 'footer', { brand: ctx.brandName, links: ['Features', 'Pricing', 'FAQ', 'Support'] }, t)
+        ]
+      },
+      {
+        label: 'Storyteller',
+        desc: 'Hero → About → Testimonials → Features → Contact → Footer',
+        build: (t, id) => [
+          this._s(id + 's1', 'hero', { heading: ctx.hero, subheading: ctx.sub, cta: 'Our Story', cta2: 'Contact Us' }, t),
+          this._s(id + 's2', 'about', { heading: `The ${ctx.brandName} Story`, text: ctx.about, image: '📖' }, t),
+          this._s(id + 's3', 'testimonials', { heading: 'Voices of Trust', items: ctx.testimonials }, t),
+          this._s(id + 's4', 'features', { heading: 'What We Offer', items: ctx.features }, t),
+          this._s(id + 's5', 'contact', { heading: 'Let\'s Talk', subheading: ctx.ctaSub }, t),
+          this._s(id + 's6', 'footer', { brand: ctx.brandName, links: ['Story', 'Services', 'Testimonials', 'Contact'] }, t)
+        ]
+      },
+      {
+        label: 'Starter',
+        desc: 'Hero → Features → CTA → Footer (minimal, fast)',
+        build: (t, id) => [
+          this._s(id + 's1', 'hero', { heading: ctx.hero, subheading: ctx.sub, cta: 'Get Started', cta2: '' }, t),
+          this._s(id + 's2', 'features', { heading: 'Why ' + ctx.brandName + '?', items: ctx.features }, t),
+          this._s(id + 's3', 'cta', { heading: ctx.cta, subheading: ctx.ctaSub, cta: 'Start Now' }, t),
+          this._s(id + 's4', 'footer', { brand: ctx.brandName, links: ['About', 'Contact', 'Privacy'] }, t)
+        ]
+      }
+    ];
+    return templates.map((tpl, i) => {
+      const theme = PresetThemes.presets[presets[i]] || PresetThemes.presets.modern;
+      const uid = 'v' + i + '_';
+      const sectionsArr = tpl.build(theme, uid);
+      const sectionsMap = {};
+      sectionsArr.forEach(s => { sectionsMap[s.id] = s; });
+      const sectionIds = sectionsArr.map(s => s.id);
+      return {
+        label: tpl.label,
+        desc: tpl.desc,
+        site: {
+          id: 'site_' + Date.now() + '_' + i,
+          name: ctx.brandName,
+          slug: ctx.brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          version: 1,
+          status: 'draft',
+          seo: { title: ctx.brandName, description: prompt.substring(0, 160), ogImage: '' },
+          globalStyles: {
+            colors: { primary: theme.primary, secondary: theme.secondary || theme.primary, bg: theme.bg, text: theme.text, accent: theme.accent },
+            typography: { headingFont: theme.headingFont || 'Inter', bodyFont: theme.bodyFont || 'Inter', baseFontSize: 16 },
+            spacing: { sectionPadding: 80, containerMax: 1200 },
+            animations: { enabled: true, type: 'fadeIn', duration: 0.6 },
+            preset: presets[i]
+          },
+          pages: [{ id: 'home', name: 'Home', slug: '/', isHome: true, sections: sectionIds, seo: { title: '', description: '' } }],
+          sections: sectionsMap,
+          components: [],
+          forms: {},
+          analytics: { views: Math.floor(Math.random() * 500 + 100), visitors: 0, interactions: [] },
+          collaboration: { shareId: Math.random().toString(36).substr(2, 8), comments: [] },
+          published: false, publishedUrl: null, publishedVersions: [],
+          createdAt: new Date().toISOString()
+        }
+      };
+    });
+  },
+  // ── Context-Aware Content from User Prompt ──
+  contextContent(prompt, bizType) {
+    const words = prompt.split(/\s+/);
+    const brandName = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const lp = prompt.toLowerCase();
+    // Industry detection
+    const industries = {
+      tech: /tech|software|app|digital|code|saas|startup|ai|platform/,
+      health: /health|fitness|wellness|medical|yoga|gym|clinic/,
+      food: /food|restaurant|cafe|bakery|cook|chef|catering|pizza/,
+      fashion: /fashion|clothing|style|boutique|apparel|wear|design/,
+      finance: /finance|bank|invest|money|trading|crypto|accounting/,
+      education: /school|edu|learn|course|tutor|academy|training/,
+      creative: /art|photo|design|studio|creative|video|music/,
+      realestate: /real estate|property|home|house|apartment|realt/
+    };
+    let industry = 'general';
+    for (const [k, re] of Object.entries(industries)) { if (re.test(lp)) { industry = k; break; } }
+    // Industry-specific content
+    const content = {
+      tech: {
+        hero: `Transform Your Digital Future with ${brandName}`,
+        sub: `Cutting-edge ${words.length > 3 ? words.slice(3, 8).join(' ') : 'technology solutions'} designed to accelerate your growth and streamline operations.`,
+        features: [{ icon: '⚡', title: 'Lightning Performance', desc: 'Blazing-fast infrastructure built for scale.' }, { icon: '🛡️', title: 'Enterprise Security', desc: 'Bank-grade encryption and compliance.' }, { icon: '📊', title: 'Real-Time Analytics', desc: 'Data-driven insights at your fingertips.' }, { icon: '🔗', title: 'Seamless Integrations', desc: 'Connect with 200+ tools effortlessly.' }],
+        about: `${brandName} is pioneering the next generation of ${lp.includes('ai') ? 'artificial intelligence' : 'digital'} solutions. Our team of experts is committed to delivering technology that makes a real difference.`,
+        testimonials: [{ name: 'Arjun S.', role: 'CTO, TechVenture', text: `${brandName} transformed our entire workflow. Productivity up 40%.`, avatar: '👨‍💻' }, { name: 'Priya M.', role: 'VP Engineering', text: 'The best technology investment we made this year.', avatar: '👩‍💼' }],
+        cta: `Start Building with ${brandName}`, ctaSub: 'Join thousands of developers and businesses already scaling.',
+      },
+      health: {
+        hero: `Your Journey to Wellness Starts with ${brandName}`,
+        sub: `Holistic ${words.length > 3 ? words.slice(3, 8).join(' ') : 'health and wellness'} programs tailored to your unique needs.`,
+        features: [{ icon: '🧘', title: 'Personalized Programs', desc: 'Custom plans for your goals.' }, { icon: '🍎', title: 'Nutrition Guidance', desc: 'Expert dietary recommendations.' }, { icon: '💪', title: 'Expert Trainers', desc: 'Certified professionals by your side.' }, { icon: '📈', title: 'Progress Tracking', desc: 'Monitor your transformation journey.' }],
+        about: `At ${brandName}, we believe wellness is a lifestyle. Our certified experts combine science-backed methods with compassionate care.`,
+        testimonials: [{ name: 'Sneha R.', role: 'Member', text: `${brandName} changed my life. Down 15kg and feeling amazing!`, avatar: '🧑‍⚕️' }, { name: 'Rahul K.', role: 'Athlete', text: 'Best training program I have ever experienced.', avatar: '🏃' }],
+        cta: `Begin Your Transformation`, ctaSub: 'First consultation is completely free.',
+      },
+      food: {
+        hero: `Savor Every Moment at ${brandName}`,
+        sub: `Exquisite ${words.length > 3 ? words.slice(3, 8).join(' ') : 'culinary experiences'} crafted with passion and the finest ingredients.`,
+        features: [{ icon: '🥗', title: 'Fresh Ingredients', desc: 'Locally sourced, farm-to-table.' }, { icon: '🍽️', title: 'Curated Menu', desc: 'Chef\'s seasonal specialties.' }, { icon: '🍷', title: 'Fine Selection', desc: 'Premium wines and beverages.' }, { icon: '🎂', title: 'Artisan Desserts', desc: 'Handcrafted sweet perfection.' }],
+        about: `${brandName} brings together culinary tradition and modern innovation. Every dish tells a story of passion, quality, and artistry.`,
+        testimonials: [{ name: 'Anita D.', role: 'Food Critic', text: `${brandName} is a culinary masterpiece. A must-visit experience.`, avatar: '👩‍🍳' }, { name: 'Vikram P.', role: 'Regular Guest', text: 'The flavors are absolutely extraordinary.', avatar: '🧑‍🍳' }],
+        cta: `Reserve Your Table at ${brandName}`, ctaSub: 'Experience dining at its finest.',
+      },
+      fashion: {
+        hero: `Redefine Your Style with ${brandName}`,
+        sub: `Discover ${words.length > 3 ? words.slice(3, 8).join(' ') : 'curated fashion collections'} that express your unique personality.`,
+        features: [{ icon: '👗', title: 'New Collections', desc: 'Fresh styles every season.' }, { icon: '✨', title: 'Premium Quality', desc: 'Luxury fabrics and craftsmanship.' }, { icon: '🚚', title: 'Free Shipping', desc: 'Complimentary delivery worldwide.' }, { icon: '🔄', title: 'Easy Returns', desc: '30-day hassle-free returns.' }],
+        about: `${brandName} is where timeless elegance meets contemporary fashion. We curate pieces that make you feel confident and extraordinary.`,
+        testimonials: [{ name: 'Meera S.', role: 'Style Blogger', text: `${brandName}'s quality is unmatched. My go-to for every occasion.`, avatar: '👩‍🎤' }, { name: 'Karan J.', role: 'Customer', text: 'Beautifully crafted pieces that stand the test of time.', avatar: '🧑' }],
+        cta: `Shop the ${brandName} Collection`, ctaSub: 'Free shipping on your first order.',
+      },
+      finance: {
+        hero: `Secure Your Financial Future with ${brandName}`,
+        sub: `Smart ${words.length > 3 ? words.slice(3, 8).join(' ') : 'financial solutions'} to grow and protect your wealth.`,
+        features: [{ icon: '💰', title: 'Smart Investing', desc: 'AI-driven portfolio management.' }, { icon: '🛡️', title: 'Secure Transactions', desc: 'Military-grade encryption.' }, { icon: '📈', title: 'Growth Analytics', desc: 'Real-time market insights.' }, { icon: '🤝', title: 'Expert Advisors', desc: 'Certified financial planners.' }],
+        about: `${brandName} empowers individuals and businesses with intelligent financial tools. Our platform combines expertise with cutting-edge technology.`,
+        testimonials: [{ name: 'Deepak T.', role: 'Investor', text: `${brandName} helped me grow my portfolio by 35% in one year.`, avatar: '👨‍💼' }, { name: 'Nisha K.', role: 'Business Owner', text: 'Finally, financial management that makes sense.', avatar: '👩‍💼' }],
+        cta: `Start Investing with ${brandName}`, ctaSub: 'Open your account in under 5 minutes.',
+      },
+      education: {
+        hero: `Unlock Your Potential with ${brandName}`,
+        sub: `World-class ${words.length > 3 ? words.slice(3, 8).join(' ') : 'learning experiences'} designed by industry experts.`,
+        features: [{ icon: '🎓', title: 'Expert Instructors', desc: 'Learn from the very best.' }, { icon: '📚', title: 'Rich Curriculum', desc: 'Comprehensive course material.' }, { icon: '🏆', title: 'Certifications', desc: 'Industry-recognized credentials.' }, { icon: '🌐', title: 'Learn Anywhere', desc: '100% online, your pace.' }],
+        about: `${brandName} is dedicated to making quality education accessible. Our programs bridge the gap between knowledge and real-world application.`,
+        testimonials: [{ name: 'Aditi C.', role: 'Student', text: `${brandName}'s courses helped me land my dream job!`, avatar: '👩‍🎓' }, { name: 'Rohan M.', role: 'Professional', text: 'The best upskilling platform I have used.', avatar: '👨‍🎓' }],
+        cta: `Start Learning at ${brandName}`, ctaSub: 'First course is completely free.',
+      },
+      creative: {
+        hero: `Creative Excellence by ${brandName}`,
+        sub: `Stunning ${words.length > 3 ? words.slice(3, 8).join(' ') : 'creative work'} that captivates audiences and defines brands.`,
+        features: [{ icon: '🎨', title: 'Brand Identity', desc: 'Logos, colors, typography.' }, { icon: '📱', title: 'Digital Design', desc: 'Web, mobile, and app interfaces.' }, { icon: '🎬', title: 'Motion Graphics', desc: 'Animated stories that inspire.' }, { icon: '📸', title: 'Photography', desc: 'Professional visual storytelling.' }],
+        about: `${brandName} is a creative studio that transforms ideas into powerful visual experiences. We partner with brands to create work that matters.`,
+        testimonials: [{ name: 'Tara N.', role: 'Creative Director', text: `${brandName}'s work consistently exceeds expectations.`, avatar: '🎨' }, { name: 'Jay B.', role: 'Brand Manager', text: 'They brought our vision to life beautifully.', avatar: '👨‍🎤' }],
+        cta: `Start Your Project with ${brandName}`, ctaSub: 'Let\'s create something extraordinary together.',
+      },
+      realestate: {
+        hero: `Find Your Dream Home with ${brandName}`,
+        sub: `Premium ${words.length > 3 ? words.slice(3, 8).join(' ') : 'properties'} in prime locations, curated for discerning buyers.`,
+        features: [{ icon: '🏠', title: 'Premium Listings', desc: 'Hand-picked luxury properties.' }, { icon: '📍', title: 'Prime Locations', desc: 'Best neighborhoods and areas.' }, { icon: '💳', title: 'Easy Financing', desc: 'Flexible payment options.' }, { icon: '🛠️', title: 'Full Support', desc: 'End-to-end buying assistance.' }],
+        about: `${brandName} connects you with exceptional properties. Our experienced agents ensure a seamless journey from search to keys-in-hand.`,
+        testimonials: [{ name: 'Suresh P.', role: 'Homeowner', text: `${brandName} made buying our first home effortless!`, avatar: '🏡' }, { name: 'Pooja G.', role: 'Investor', text: 'Excellent properties and professional service.', avatar: '👩‍💼' }],
+        cta: `Explore Properties with ${brandName}`, ctaSub: 'Schedule your free property tour today.',
+      },
+      general: {
+        hero: `Welcome to ${brandName}`,
+        sub: `${prompt.length > 30 ? prompt.substring(0, 80) : 'Innovative solutions crafted to elevate your business and delight your customers.'}`,
+        features: [{ icon: '🚀', title: 'Fast & Reliable', desc: 'Built for performance and speed.' }, { icon: '🔒', title: 'Secure & Trusted', desc: 'Your data is always safe.' }, { icon: '💬', title: 'Expert Support', desc: '24/7 assistance when you need it.' }, { icon: '⭐', title: 'Top Quality', desc: 'Excellence in every detail.' }],
+        about: `${brandName} is dedicated to delivering exceptional quality and service. We combine innovation with deep expertise to create solutions that truly matter.`,
+        testimonials: [{ name: 'Amit S.', role: 'Client', text: `Working with ${brandName} was an outstanding experience!`, avatar: '👨‍💼' }, { name: 'Riya T.', role: 'Partner', text: 'Professional, reliable, and highly recommended.', avatar: '👩‍💼' }],
+        cta: `Get Started with ${brandName}`, ctaSub: 'Join hundreds of satisfied customers today.',
+      }
+    };
+    const c = content[industry] || content.general;
+    return { brandName, industry, ...c };
   },
   extractName(prompt, type) {
     const w = prompt.split(' ').slice(0, 3).join(' ');
@@ -344,60 +557,201 @@ const AIEngine = {
   },
   // Section templates
   _s(id, type, content, theme) { return { id, type, content, styles: { primary: theme.primary, bg: theme.bg, text: theme.text, accent: theme.accent }, responsive: { tablet: {}, mobile: {} }, animation: { type: 'fadeIn', enabled: true } }; },
-  businessTpl(p, t) {
+  businessTpl(p, t, ctx) {
     return [
-      this._s('s1', 'hero', { heading: 'Elevate Your Business', subheading: 'We deliver innovative solutions that drive growth and transform your digital presence.', cta: 'Get Started', cta2: 'Learn More' }, t),
-      this._s('s2', 'features', { heading: 'Why Choose Us', items: [{ icon: '🚀', title: 'Fast Performance', desc: 'Lightning-fast loading speeds.' }, { icon: '🔒', title: 'Enterprise Security', desc: 'Bank-grade security.' }, { icon: '📈', title: 'Growth Analytics', desc: 'Data-driven insights.' }, { icon: '🤝', title: '24/7 Support', desc: 'Always here to help.' }] }, t),
-      this._s('s3', 'about', { heading: 'About Our Company', text: 'We are a team of passionate innovators dedicated to helping businesses thrive in the digital age.', image: '🏢' }, t),
-      this._s('s4', 'testimonials', { heading: 'What Our Clients Say', items: [{ name: 'Sarah J.', role: 'CEO', text: 'Incredible results!', avatar: '👩‍💼' }, { name: 'Mike C.', role: 'Founder', text: 'Best investment ever!', avatar: '👨‍💻' }] }, t),
-      this._s('s5', 'cta', { heading: 'Ready to Get Started?', subheading: 'Join thousands of successful businesses.', cta: 'Start Free Trial' }, t),
-      this._s('s6', 'footer', { brand: 'Business Pro', links: ['About', 'Services', 'Contact', 'Privacy'] }, t)
+      this._s('s1', 'hero', { heading: ctx.hero, subheading: ctx.sub, cta: 'Get Started', cta2: 'Learn More' }, t),
+      this._s('s2', 'features', { heading: 'Why Choose Us', items: ctx.features }, t),
+      this._s('s3', 'about', { heading: `About ${ctx.brandName}`, text: ctx.about, image: '🏢' }, t),
+      this._s('s4', 'testimonials', { heading: 'What Our Clients Say', items: ctx.testimonials }, t),
+      this._s('s5', 'cta', { heading: ctx.cta, subheading: ctx.ctaSub, cta: 'Start Free Trial' }, t),
+      this._s('s6', 'footer', { brand: ctx.brandName, links: ['About', 'Services', 'Contact', 'Privacy'] }, t)
     ];
   },
-  portfolioTpl(p, t) {
+  portfolioTpl(p, t, ctx) {
     return [
-      this._s('s1', 'hero', { heading: 'Creative Portfolio', subheading: 'Showcasing exceptional design and creative excellence.', cta: 'View Work', cta2: 'Contact Me' }, t),
-      this._s('s2', 'gallery', { heading: 'Featured Work', items: ['🎨 Brand Design', '📱 Mobile App', '🌐 Website', '📹 Video', '🖼️ Illustration', '📸 Photography'] }, t),
-      this._s('s3', 'about', { heading: 'About Me', text: 'Multidisciplinary designer passionate about beautiful, functional experiences.', image: '🎭' }, t),
-      this._s('s4', 'contact', { heading: 'Let\'s Connect', subheading: 'Have a project? I\'d love to hear about it.' }, t),
-      this._s('s5', 'footer', { brand: 'Portfolio', links: ['Work', 'About', 'Contact', 'Instagram'] }, t)
+      this._s('s1', 'hero', { heading: ctx.hero, subheading: ctx.sub, cta: 'View Work', cta2: 'Contact Me' }, t),
+      this._s('s2', 'gallery', { heading: 'Featured Work', items: ctx.features.map(f => f.icon + ' ' + f.title) }, t),
+      this._s('s3', 'about', { heading: `About ${ctx.brandName}`, text: ctx.about, image: '🎨' }, t),
+      this._s('s4', 'contact', { heading: 'Let\'s Connect', subheading: ctx.ctaSub }, t),
+      this._s('s5', 'footer', { brand: ctx.brandName, links: ['Work', 'About', 'Contact', 'Instagram'] }, t)
     ];
   },
-  ecommerceTpl(p, t) {
+  ecommerceTpl(p, t, ctx) {
     return [
-      this._s('s1', 'hero', { heading: 'Shop the Latest Collection', subheading: 'Premium products curated just for you.', cta: 'Shop Now', cta2: 'New Arrivals' }, t),
-      this._s('s2', 'features', { heading: 'Featured Products', items: [{ icon: '👟', title: 'Premium Sneakers', desc: 'Starting at $89.' }, { icon: '👜', title: 'Designer Bags', desc: 'Handcrafted luxury.' }, { icon: '⌚', title: 'Smart Watches', desc: 'Next-gen wearables.' }, { icon: '🎧', title: 'Audio Gear', desc: 'Studio-quality sound.' }] }, t),
-      this._s('s3', 'testimonials', { heading: 'Customer Reviews', items: [{ name: 'Alex R.', role: 'Buyer', text: 'Amazing quality!', avatar: '🧑' }, { name: 'Priya P.', role: 'Buyer', text: 'Best shopping experience.', avatar: '👩' }] }, t),
-      this._s('s4', 'cta', { heading: 'Get 20% Off First Order', subheading: 'Sign up and save.', cta: 'Subscribe' }, t),
-      this._s('s5', 'footer', { brand: 'ShopSite', links: ['Products', 'About', 'FAQ', 'Returns'] }, t)
+      this._s('s1', 'hero', { heading: ctx.hero, subheading: ctx.sub, cta: 'Shop Now', cta2: 'New Arrivals' }, t),
+      this._s('s2', 'features', { heading: 'Featured Products', items: ctx.features }, t),
+      this._s('s3', 'testimonials', { heading: 'Customer Reviews', items: ctx.testimonials }, t),
+      this._s('s4', 'cta', { heading: ctx.cta, subheading: ctx.ctaSub, cta: 'Subscribe' }, t),
+      this._s('s5', 'footer', { brand: ctx.brandName, links: ['Products', 'About', 'FAQ', 'Returns'] }, t)
     ];
   },
-  blogTpl(p, t) {
+  blogTpl(p, t, ctx) {
     return [
-      this._s('s1', 'hero', { heading: 'Welcome to My Blog', subheading: 'Thoughts, stories, and ideas worth sharing.', cta: 'Read Latest', cta2: 'Subscribe' }, t),
-      this._s('s2', 'features', { heading: 'Recent Posts', items: [{ icon: '📝', title: 'The Future of AI', desc: 'How AI reshapes industries.' }, { icon: '💡', title: 'Design Thinking', desc: 'Solving problems creatively.' }, { icon: '🌍', title: 'Remote Work', desc: '10 productivity strategies.' }, { icon: '📚', title: 'Book Reviews', desc: 'Top growth picks.' }] }, t),
-      this._s('s3', 'cta', { heading: 'Never Miss a Post', subheading: 'Subscribe for weekly updates.', cta: 'Subscribe Now' }, t),
-      this._s('s4', 'footer', { brand: 'BlogSite', links: ['Articles', 'About', 'Newsletter', 'RSS'] }, t)
+      this._s('s1', 'hero', { heading: ctx.hero, subheading: ctx.sub, cta: 'Read Latest', cta2: 'Subscribe' }, t),
+      this._s('s2', 'features', { heading: 'Recent Posts', items: ctx.features }, t),
+      this._s('s3', 'cta', { heading: ctx.cta, subheading: ctx.ctaSub, cta: 'Subscribe Now' }, t),
+      this._s('s4', 'footer', { brand: ctx.brandName, links: ['Articles', 'About', 'Newsletter', 'RSS'] }, t)
     ];
   },
-  restaurantTpl(p, t) {
+  restaurantTpl(p, t, ctx) {
     return [
-      this._s('s1', 'hero', { heading: 'Fine Dining Experience', subheading: 'Exquisite cuisine crafted with passion.', cta: 'Reserve a Table', cta2: 'View Menu' }, t),
-      this._s('s2', 'features', { heading: 'Our Menu', items: [{ icon: '🥗', title: 'Starters', desc: 'Fresh salads & appetizers.' }, { icon: '🥩', title: 'Main Course', desc: 'Premium steaks & seafood.' }, { icon: '🍷', title: 'Wine Selection', desc: 'Curated fine wines.' }, { icon: '🍰', title: 'Desserts', desc: 'Handcrafted sweets.' }] }, t),
-      this._s('s3', 'about', { heading: 'Our Story', text: 'Combining traditional techniques with modern creativity since 2010.', image: '🍽️' }, t),
-      this._s('s4', 'contact', { heading: 'Make a Reservation', subheading: 'Book your table today.' }, t),
-      this._s('s5', 'footer', { brand: 'Restaurant', links: ['Menu', 'Reservations', 'Events', 'Contact'] }, t)
+      this._s('s1', 'hero', { heading: ctx.hero, subheading: ctx.sub, cta: 'Reserve a Table', cta2: 'View Menu' }, t),
+      this._s('s2', 'features', { heading: 'Our Menu', items: ctx.features }, t),
+      this._s('s3', 'about', { heading: `Our Story`, text: ctx.about, image: '🍽️' }, t),
+      this._s('s4', 'contact', { heading: 'Make a Reservation', subheading: ctx.ctaSub }, t),
+      this._s('s5', 'footer', { brand: ctx.brandName, links: ['Menu', 'Reservations', 'Events', 'Contact'] }, t)
     ];
   },
-  saasTpl(p, t) {
+  saasTpl(p, t, ctx) {
     return [
-      this._s('s1', 'hero', { heading: 'Scale Your Business Faster', subheading: 'The all-in-one platform for productivity.', cta: 'Start Free Trial', cta2: 'View Demo' }, t),
-      this._s('s2', 'features', { heading: 'Powerful Features', items: [{ icon: '⚡', title: 'Lightning Fast', desc: 'Sub-second response.' }, { icon: '🔄', title: 'Automation', desc: 'Automate repetitive tasks.' }, { icon: '📊', title: 'Analytics', desc: 'Real-time dashboards.' }, { icon: '🔗', title: 'Integrations', desc: '100+ tool connections.' }] }, t),
-      this._s('s3', 'pricing', { heading: 'Simple Pricing', plans: [{ name: 'Starter', price: '$19/mo', features: ['5 Users', '10GB', 'Email Support'] }, { name: 'Pro', price: '$49/mo', features: ['25 Users', '100GB', 'Priority Support', 'API'], popular: true }, { name: 'Enterprise', price: '$99/mo', features: ['Unlimited', '1TB', '24/7 Support', 'Custom'] }] }, t),
-      this._s('s4', 'testimonials', { heading: 'Trusted by Teams', items: [{ name: 'David K.', role: 'CTO', text: 'Cut dev time in half!', avatar: '👨‍💻' }, { name: 'Lisa W.', role: 'Product Lead', text: 'Adopted in one day.', avatar: '👩‍💼' }] }, t),
-      this._s('s5', 'cta', { heading: 'Transform Your Workflow', subheading: 'Start free. No credit card required.', cta: 'Get Started Free' }, t),
-      this._s('s6', 'footer', { brand: 'SaaS Platform', links: ['Features', 'Pricing', 'Docs', 'Support'] }, t)
+      this._s('s1', 'hero', { heading: ctx.hero, subheading: ctx.sub, cta: 'Start Free Trial', cta2: 'View Demo' }, t),
+      this._s('s2', 'features', { heading: 'Powerful Features', items: ctx.features }, t),
+      this._s('s3', 'pricing', { heading: 'Simple Pricing', plans: [{ name: 'Starter', price: '₹999/mo', features: ['5 Users', '10GB', 'Email Support'] }, { name: 'Pro', price: '₹2,499/mo', features: ['25 Users', '100GB', 'Priority Support', 'API'], popular: true }, { name: 'Enterprise', price: '₹4,999/mo', features: ['Unlimited', '1TB', '24/7 Support', 'Custom'] }] }, t),
+      this._s('s4', 'testimonials', { heading: 'Trusted by Teams', items: ctx.testimonials }, t),
+      this._s('s5', 'cta', { heading: ctx.cta, subheading: ctx.ctaSub, cta: 'Get Started Free' }, t),
+      this._s('s6', 'footer', { brand: ctx.brandName, links: ['Features', 'Pricing', 'Docs', 'Support'] }, t)
     ];
+  }
+};
+
+// ══════════════════ CHOICE CANVAS ══════════════════
+const ChoiceCanvas = {
+  variations: [],
+  onboardData: null,
+  show(variations, data) {
+    this.variations = variations;
+    this.onboardData = data;
+    const grid = document.getElementById('choice-grid');
+    if (!grid) return;
+    grid.innerHTML = variations.map((v, i) => {
+      const site = v.site;
+      const heroSection = Object.values(site.sections)[0];
+      const preview = heroSection ? Renderer.renderSection(heroSection, false) : '';
+      return `<div class="choice-card" onclick="ChoiceCanvas.select(${i})">
+        <div class="choice-preview">${preview}</div>
+        <div class="choice-info">
+          <h3>${v.label}</h3>
+          <p>${v.desc}</p>
+        </div>
+        <button class="btn btn-outline btn-sm btn-block">Select This Style</button>
+      </div>`;
+    }).join('');
+  },
+  select(index) {
+    const v = this.variations[index];
+    if (!v) return;
+    const site = v.site;
+    const user = Store.get('currentUser');
+    if (user) { user.sites.push(site); Store.set('currentUser', user); }
+    state.currentSite = site;
+    Editor.loadSite(site);
+    App.showPage('page-editor');
+    showToast(`${v.label} style selected! 🎉`, 'success');
+  }
+};
+
+// ══════════════════ DEEP EDIT ══════════════════
+const DeepEdit = {
+  init() {
+    const canvas = document.getElementById('editor-canvas');
+    if (!canvas) return;
+    // Text selection AI toolbar
+    canvas.addEventListener('mouseup', (e) => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) { this.hideToolbar(); return; }
+      const range = sel.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      this.showToolbar(rect, sel.toString());
+    });
+    // Image click handler for suggestions
+    canvas.addEventListener('click', (e) => {
+      const target = e.target;
+      if (target.style?.fontSize && parseInt(target.style.fontSize) >= 32 && /[\u{1F300}-\u{1FAFF}]/u.test(target.textContent)) {
+        this.showImageSuggestions(target);
+      }
+    });
+  },
+  showToolbar(rect, text) {
+    let tb = document.getElementById('ai-float-toolbar');
+    if (!tb) {
+      tb = document.createElement('div');
+      tb.id = 'ai-float-toolbar';
+      tb.className = 'ai-float-toolbar';
+      document.body.appendChild(tb);
+    }
+    this._selectedText = text;
+    tb.innerHTML = `
+      <span class="ai-tb-label">✨ AI Rewrite</span>
+      <button onclick="DeepEdit.rewrite('shorter')">Shorter</button>
+      <button onclick="DeepEdit.rewrite('longer')">Longer</button>
+      <button onclick="DeepEdit.rewrite('professional')">Professional</button>
+      <button onclick="DeepEdit.rewrite('friendly')">Friendly</button>
+      <button onclick="DeepEdit.rewrite('luxury')">Luxury</button>`;
+    tb.style.display = 'flex';
+    tb.style.top = (rect.top + window.scrollY - 44) + 'px';
+    tb.style.left = Math.max(10, rect.left + rect.width / 2 - 200) + 'px';
+  },
+  hideToolbar() {
+    const tb = document.getElementById('ai-float-toolbar');
+    if (tb) tb.style.display = 'none';
+  },
+  rewrite(mode) {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return;
+    const text = this._selectedText || sel.toString();
+    let result = text;
+    if (mode === 'shorter') {
+      result = text.split('.').slice(0, 1).join('.') + '.';
+    } else if (mode === 'longer') {
+      result = text + ' We are committed to delivering excellence in every aspect of our work, ensuring complete satisfaction.';
+    } else {
+      const variants = AIEngine.rewriteInVoice(text, mode);
+      result = variants[Math.floor(Math.random() * variants.length)];
+    }
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(document.createTextNode(result));
+    this.hideToolbar();
+    Editor.saveSite();
+    showToast(`Rewritten (${mode})`, 'success');
+  },
+  showImageSuggestions(el) {
+    let popup = document.getElementById('ai-image-popup');
+    if (!popup) {
+      popup = document.createElement('div');
+      popup.id = 'ai-image-popup';
+      popup.className = 'ai-image-popup';
+      document.body.appendChild(popup);
+    }
+    this._imageTarget = el;
+    const industry = state.currentSite?.seo?.description?.toLowerCase() || '';
+    const emojiSets = {
+      tech: ['💻', '🖥️', '📱', '⚙️', '🤖', '🔬'],
+      health: ['🧘', '🏋️', '🍏', '❤️', '🌿', '🏃'],
+      food: ['🍽️', '🍳', '🧁', '🍰', '🍍', '🥗'],
+      fashion: ['👗', '👜', '👠', '🧥', '👟', '🧵'],
+      default: ['🏢', '🌟', '💡', '🎯', '🚀', '🏆']
+    };
+    let setKey = 'default';
+    for (const [k, re] of Object.entries({ tech: /tech|software|code|ai/, health: /health|fitness|gym/, food: /food|restaurant|cook/, fashion: /fashion|cloth|style/ })) {
+      if (re.test(industry)) { setKey = k; break; }
+    }
+    const emojis = emojiSets[setKey];
+    popup.innerHTML = `<div class="ai-img-label">🎨 Suggest Alternatives</div>
+      <div class="ai-img-grid">${emojis.map(e => `<button onclick="DeepEdit.replaceImage('${e}')">${e}</button>`).join('')}</div>`;
+    const rect = el.getBoundingClientRect();
+    popup.style.display = 'block';
+    popup.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+    popup.style.left = (rect.left + rect.width / 2 - 120) + 'px';
+  },
+  replaceImage(emoji) {
+    if (this._imageTarget) {
+      this._imageTarget.textContent = emoji;
+      Editor.saveSite();
+      showToast('Image updated', 'success');
+    }
+    const popup = document.getElementById('ai-image-popup');
+    if (popup) popup.style.display = 'none';
   }
 };
 // ══════════════════ RENDERER ══════════════════
@@ -507,7 +861,10 @@ const Editor = {
     this.renderSite();
     this.renderPagesList();
     this.renderComponentsList();
-    TrialManager.checkEditorAccess();
+    // ── Freeze guard: block editor if site is frozen ──
+    const frozen = SiteTimer.isFrozen(site);
+    const overlay = document.getElementById('editor-trial-overlay');
+    if (overlay) overlay.style.display = frozen ? 'flex' : 'none';
     PlanManager.applyPlanFeatures();
     VersionManager.updateUI();
     History.clear();
@@ -667,8 +1024,25 @@ const Editor = {
     const sid = page.sections[idx];
     delete this.currentSite.sections[sid];
     page.sections.splice(idx, 1);
+    this.rebalanceLayout();
     this.saveSite(); this.renderSite();
-    showToast('Section deleted', 'info');
+    showToast('Section deleted — layout rebalanced', 'info');
+  },
+  rebalanceLayout() {
+    if (!this.currentSite) return;
+    const page = this.currentSite.pages.find(p => p.id === this.activePage);
+    if (!page) return;
+    const sectionCount = page.sections.length;
+    // Increase section padding when fewer sections to maintain visual balance
+    const basePadding = sectionCount <= 2 ? 120 : sectionCount <= 4 ? 100 : 80;
+    this.currentSite.globalStyles.spacing.sectionPadding = basePadding;
+    // Ensure first visible section has extra top padding if not hero
+    if (page.sections.length > 0) {
+      const firstSec = this.currentSite.sections[page.sections[0]];
+      if (firstSec && firstSec.type !== 'hero') {
+        firstSec.styles._extraTopPad = true;
+      }
+    }
   },
   addSection(type) {
     if (!this.currentSite) return showToast('No site loaded', 'error');
@@ -955,14 +1329,17 @@ const Collaboration = {
 // ══════════════════ ANALYTICS ══════════════════
 const AnalyticsModule = {
   init() {
-    if (!state.currentSite) return;
-    const a = state.currentSite.analytics;
-    a.visitors = a.visitors || Math.floor(a.views * 0.6);
     const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-    el('stat-views', a.views.toLocaleString());
-    el('stat-visitors', a.visitors.toLocaleString());
-    el('stat-clicks', Math.floor(a.views * 0.15).toLocaleString());
-    el('stat-time', Math.floor(Math.random() * 120 + 30) + 's');
+    if (state.currentSite) {
+      const a = state.currentSite.analytics;
+      a.visitors = a.visitors || Math.floor(a.views * 0.6);
+      el('stat-views', a.views.toLocaleString('en-IN'));
+      el('stat-visitors', a.visitors.toLocaleString('en-IN'));
+      el('stat-clicks', Math.floor(a.views * 0.15).toLocaleString('en-IN'));
+      el('stat-time', Math.floor(Math.random() * 120 + 30) + 's');
+    } else {
+      el('stat-views', '0'); el('stat-visitors', '0'); el('stat-clicks', '0'); el('stat-time', '0s');
+    }
     this.renderChart();
   },
   renderChart() {
@@ -1183,14 +1560,67 @@ const ContentRewriter = {
   hidePopup() { document.getElementById('rewriter-popup').style.display = 'none'; }
 };
 
+// ══════════════════ SITE TIMER & FREEZE SYSTEM ══════════════════
+const SiteTimer = {
+  TRIAL_DAYS: 30,
+  getDaysLeft(site) {
+    if (!site?.createdAt) return this.TRIAL_DAYS;
+    const created = new Date(site.createdAt).getTime();
+    const now = Date.now();
+    const elapsed = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+    return Math.max(0, this.TRIAL_DAYS - elapsed);
+  },
+  getProgress(site) {
+    const left = this.getDaysLeft(site);
+    return ((this.TRIAL_DAYS - left) / this.TRIAL_DAYS) * 100;
+  },
+  isFrozen(site) {
+    if (!site) return false;
+    const user = Store.get('currentUser');
+    if (this.hasActiveSubscription(user)) return false;
+    return this.getDaysLeft(site) <= 0;
+  },
+  hasActiveSubscription(user) {
+    if (!user) return false;
+    if (user.subscriptionEnd) {
+      return new Date(user.subscriptionEnd).getTime() > Date.now();
+    }
+    return false;
+  },
+  freezeCheck(user) {
+    if (!user?.sites) return;
+    let changed = false;
+    user.sites.forEach(s => {
+      const wasFrozen = s.frozen || false;
+      s.frozen = this.isFrozen(s);
+      if (s.frozen !== wasFrozen) changed = true;
+    });
+    if (changed) Store.set('currentUser', user);
+  },
+  unfreezeAll(user) {
+    if (!user?.sites) return;
+    user.sites.forEach(s => { s.frozen = false; });
+    Store.set('currentUser', user);
+  },
+  getBadgeColor(daysLeft) {
+    if (daysLeft > 15) return '#2ecc71';
+    if (daysLeft > 5) return '#f39c12';
+    return '#e74c3c';
+  }
+};
+
 // ══════════════════ PLAN MANAGER ══════════════════
 const PlanManager = {
   plans: {
-    trial: { pages: 3, versions: 3, components: false, analytics: false, collaboration: false, codeExport: false, formBuilder: 'basic', customDomain: false, presetThemes: 2 },
-    starter: { pages: 3, versions: 3, components: false, analytics: false, collaboration: false, codeExport: false, formBuilder: 'basic', customDomain: false, presetThemes: 2 },
-    pro: { pages: 10, versions: 10, components: false, analytics: true, collaboration: false, codeExport: false, formBuilder: 'full', customDomain: true, presetThemes: 99 },
-    agency: { pages: 999, versions: 999, components: true, analytics: true, collaboration: true, codeExport: true, formBuilder: 'full', customDomain: true, presetThemes: 99 }
+    trial: { pages: 3, sites: 2, versions: 3, components: false, analytics: false, collaboration: false, codeExport: false, formBuilder: 'basic', customDomain: false, presetThemes: 2 },
+    starter: { pages: 3, sites: 3, versions: 3, components: false, analytics: false, collaboration: false, codeExport: false, formBuilder: 'basic', customDomain: false, presetThemes: 2 },
+    pro: { pages: 10, sites: 10, versions: 10, components: false, analytics: true, collaboration: false, codeExport: false, formBuilder: 'full', customDomain: true, presetThemes: 99 },
+    agency: { pages: 999, sites: 999, versions: 999, components: true, analytics: true, collaboration: true, codeExport: true, formBuilder: 'full', customDomain: true, presetThemes: 99 }
   },
+  // INR pricing per month
+  pricing: { starter: 100, pro: 200, agency: 300 },
+  // Billing period multipliers
+  billingMultipliers: { monthly: { factor: 1, days: 30, label: '/mo' }, quarterly: { factor: 2.7, days: 90, label: '/qtr', discount: '10% off' }, yearly: { factor: 9, days: 365, label: '/yr', discount: '25% off' } },
   getLimit(key) { return this.plans[state.plan]?.[key] || this.plans.trial[key]; },
   hasFeature(key) { return !!this.plans[state.plan]?.[key]; },
   applyPlanFeatures() {
@@ -1200,13 +1630,32 @@ const PlanManager = {
     const ce = document.getElementById('btn-comment-mode');
     if (ce) ce.classList.toggle('hidden', !plan.collaboration);
   },
-  selectPlan(planId) {
-    state.plan = planId;
+  selectPlan(planId, period) {
+    period = period || state.billingPeriod || 'monthly';
     const user = Store.get('currentUser');
-    if (user) { user.plan = planId; Store.set('currentUser', user); }
-    showToast(`Upgraded to ${planId}! 🎉`, 'success');
+    if (!user) return;
+    // ── Additive Grace Period ──
+    let bonusDays = 0;
+    if (user.sites?.length > 0) {
+      const maxRemaining = Math.max(...user.sites.map(s => SiteTimer.getDaysLeft(s)));
+      if (maxRemaining > 0) bonusDays = maxRemaining;
+    }
+    const periodDays = this.billingMultipliers[period]?.days || 30;
+    const totalDays = periodDays + bonusDays;
+    const subEnd = new Date(Date.now() + totalDays * 24 * 60 * 60 * 1000).toISOString();
+    user.plan = planId;
+    user.subscriptionEnd = subEnd;
+    Store.set('currentUser', user);
+    state.plan = planId;
+    // Unfreeze all sites
+    SiteTimer.unfreezeAll(user);
+    const msg = bonusDays > 0
+      ? `Upgraded to ${planId}! 🎉 ${bonusDays} bonus days added (${totalDays} total)`
+      : `Upgraded to ${planId}! 🎉 ${totalDays} days of access`;
+    showToast(msg, 'success');
     Modal.close('modal-upgrade');
     this.applyPlanFeatures();
+    Dashboard.renderSites();
   },
   downloadCode() {
     if (!this.hasFeature('codeExport')) { showToast('Upgrade to Agency for code export', 'error'); return; }
@@ -1228,10 +1677,39 @@ const Dashboard = {
     if (!user) return;
     document.getElementById('user-name-display').textContent = user.name;
     document.getElementById('user-avatar').textContent = user.name.charAt(0).toUpperCase();
-    const trial = Auth.checkTrial();
-    document.getElementById('trial-days').textContent = trial.days;
-    document.getElementById('trial-bar-fill').style.width = ((30 - trial.days) / 30 * 100) + '%';
-    if (user.plan !== 'trial') document.getElementById('trial-widget').style.display = 'none';
+    // Update trial widget based on subscription
+    const hasSub = SiteTimer.hasActiveSubscription(user);
+    if (hasSub || user.plan !== 'trial') {
+      document.getElementById('trial-widget').style.display = 'none';
+    } else {
+      const trial = Auth.checkTrial();
+      document.getElementById('trial-days').textContent = trial.days;
+      document.getElementById('trial-bar-fill').style.width = ((30 - trial.days) / 30 * 100) + '%';
+    }
+    // Update subscription tab info
+    const planNameEl = document.getElementById('current-plan-name');
+    const trialEndEl = document.getElementById('trial-end-date');
+    const planDescEl = document.getElementById('current-plan-desc');
+    if (planNameEl) planNameEl.textContent = user.plan === 'trial' ? 'Free Trial' : user.plan.charAt(0).toUpperCase() + user.plan.slice(1);
+    if (trialEndEl && planDescEl) {
+      if (hasSub && user.subscriptionEnd) {
+        const endDate = new Date(user.subscriptionEnd);
+        trialEndEl.textContent = endDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        planDescEl.innerHTML = `Your subscription renews on <span id="trial-end-date">${trialEndEl.textContent}</span>`;
+      } else {
+        // Calculate trial end from signup date or earliest site
+        const signupDate = Store.get('signupDate');
+        if (signupDate) {
+          const endDate = new Date(new Date(signupDate).getTime() + 30 * 24 * 60 * 60 * 1000);
+          trialEndEl.textContent = endDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        } else if (user.sites?.length > 0) {
+          const earliest = user.sites.reduce((min, s) => s.createdAt < min ? s.createdAt : min, user.sites[0].createdAt);
+          const endDate = new Date(new Date(earliest).getTime() + 30 * 24 * 60 * 60 * 1000);
+          trialEndEl.textContent = endDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+      }
+    }
+    SiteTimer.freezeCheck(user);
     this.renderSites();
     AnalyticsModule.init();
     this.renderPricing();
@@ -1245,11 +1723,34 @@ const Dashboard = {
     const empty = document.getElementById('empty-sites');
     if (!user || user.sites.length === 0) { grid.innerHTML = ''; empty.style.display = ''; return; }
     empty.style.display = 'none';
-    grid.innerHTML = user.sites.map((s, i) =>
-      `<div class="site-card"><div class="site-card-preview">${Renderer.renderSection(Object.values(s.sections)[0] || { type: 'hero', content: { heading: s.name, subheading: '', cta: '' }, styles: { primary: '#6C5CE7', bg: '#0a0a1a', text: '#fff', accent: '#00D2FF' } }, false)}</div>
-      <div class="site-card-info"><h4>${s.name}</h4><small>${s.status || 'draft'} · v${s.version || 1}</small>
-      <div class="site-card-actions"><button class="btn btn-primary btn-sm" onclick="Editor.loadSite(Store.get('currentUser').sites[${i}]);App.showPage('page-editor')">Edit</button><button class="btn btn-ghost btn-sm" onclick="Dashboard.deleteSite(${i})">Delete</button></div></div></div>`
-    ).join('');
+    grid.innerHTML = user.sites.map((s, i) => {
+      const daysLeft = SiteTimer.getDaysLeft(s);
+      const frozen = SiteTimer.isFrozen(s);
+      const progress = SiteTimer.getProgress(s);
+      const badgeColor = SiteTimer.getBadgeColor(daysLeft);
+      const previewSection = Object.values(s.sections)[0] || { type: 'hero', content: { heading: s.name, subheading: '', cta: '' }, styles: { primary: '#6C5CE7', bg: '#0a0a1a', text: '#fff', accent: '#00D2FF' } };
+      return `<div class="site-card${frozen ? ' frozen' : ''}">
+        <div class="site-card-preview">${Renderer.renderSection(previewSection, false)}
+          ${frozen ? '<div class="frozen-overlay"><span class="material-icons-round" style="font-size:40px">lock</span><p>Frozen</p></div>' : ''}
+        </div>
+        <div class="site-card-info">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <h4>${s.name}</h4>
+            <span class="countdown-badge" style="background:${badgeColor}20;color:${badgeColor};border:1px solid ${badgeColor}40">
+              ${frozen ? '🔒 Frozen' : daysLeft + 'd left'}
+            </span>
+          </div>
+          <div class="freeze-bar"><div class="freeze-bar-fill" style="width:${progress}%;background:${badgeColor}"></div></div>
+          <small>${s.status || 'draft'} · v${s.version || 1}</small>
+          <div class="site-card-actions">
+            ${frozen
+          ? '<button class="btn btn-primary btn-sm btn-block" onclick="Dashboard.showUpgrade()"><span class="material-icons-round" style="font-size:14px">lock_open</span> Upgrade to Unfreeze</button>'
+          : `<button class="btn btn-primary btn-sm" onclick="Editor.loadSite(Store.get('currentUser').sites[${i}]);App.showPage('page-editor')">Edit</button><button class="btn btn-ghost btn-sm" onclick="Dashboard.deleteSite(${i})">Delete</button>`
+        }
+          </div>
+        </div>
+      </div>`;
+    }).join('');
   },
   deleteSite(idx) {
     if (!confirm('Delete this site?')) return;
@@ -1267,16 +1768,48 @@ const Dashboard = {
     if (el.dataset.tab === 'dash-analytics') AnalyticsModule.init();
   },
   renderPricing() {
+    const fmt = v => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(v);
+    const period = state.billingPeriod || 'monthly';
+    const mult = PlanManager.billingMultipliers[period];
+    const base = PlanManager.pricing;
     const plans = [
-      { id: 'starter', name: 'Starter', price: '$9', features: ['3 Pages', 'Basic Editor', 'Free Subdomain', 'SSL', '3 Versions'] },
-      { id: 'pro', name: 'Pro', price: '$29', features: ['10 Pages', 'Full Editor', 'Custom Domain', 'Analytics', '10 Versions', 'All Themes'], popular: true },
-      { id: 'agency', name: 'Agency', price: '$79', features: ['Unlimited Pages', 'Code Export', 'Collaboration', 'Components', 'Unlimited Versions', 'Custom Domains'] }
+      { id: 'starter', name: 'Starter', price: fmt(Math.round(base.starter * mult.factor)), sites: '3 Sites', features: ['3 Pages', 'Basic Editor', 'Free Subdomain', 'SSL', '3 Versions'] },
+      { id: 'pro', name: 'Pro', price: fmt(Math.round(base.pro * mult.factor)), sites: '10 Sites', features: ['10 Pages', 'Full Editor', 'Custom Domain', 'Analytics', '10 Versions', 'All Themes'] },
+      { id: 'agency', name: 'Agency', price: fmt(Math.round(base.agency * mult.factor)), sites: 'Unlimited Sites', features: ['Unlimited Pages', 'Code Export', 'Collaboration', 'Components', 'Unlimited Versions', 'Custom Domains'] }
     ];
-    const html = plans.map(p =>
-      `<div class="pricing-card${p.popular ? ' popular' : ''}">${p.popular ? '<div class="popular-badge">Most Popular</div>' : ''}<div class="pricing-name">${p.name}</div><div class="pricing-price">${p.price}<span>/mo</span></div><ul class="pricing-features">${p.features.map(f => `<li>✓ ${f}</li>`).join('')}</ul><button class="btn ${p.popular ? 'btn-primary' : 'btn-outline'} btn-block" onclick="PlanManager.selectPlan('${p.id}')">${state.plan === p.id ? 'Current Plan' : 'Choose Plan'}</button></div>`
+    const toggleHtml = `<div class="billing-toggle">
+      <button class="billing-btn${period === 'monthly' ? ' active' : ''}" onclick="Dashboard.setBilling('monthly')">Monthly</button>
+      <button class="billing-btn${period === 'quarterly' ? ' active' : ''}" onclick="Dashboard.setBilling('quarterly')">Quarterly <small>-10%</small></button>
+      <button class="billing-btn${period === 'yearly' ? ' active' : ''}" onclick="Dashboard.setBilling('yearly')">Yearly <small>-25%</small></button>
+    </div>`;
+    const cardsHtml = plans.map(p =>
+      `<div class="pricing-card" onmousemove="Dashboard.trackGlow(event,this)" onmouseleave="Dashboard.resetGlow(this)">
+        <div class="pricing-glow"></div>
+        <div class="pricing-name">${p.name}</div>
+        <div class="pricing-price">${p.price}<span>${mult.label}</span></div>
+        <div class="pricing-sites">${p.sites}</div>
+        <ul class="pricing-features">${p.features.map(f => `<li>✓ ${f}</li>`).join('')}</ul>
+        <button class="btn btn-outline btn-block" onclick="PlanManager.selectPlan('${p.id}','${period}')">${state.plan === p.id ? 'Current Plan' : 'Choose Plan'}</button>
+      </div>`
     ).join('');
-    const up = document.getElementById('upgrade-pricing'); if (up) up.innerHTML = html;
-    const dp = document.getElementById('dash-pricing'); if (dp) dp.innerHTML = html;
+    const fullHtml = toggleHtml + '<div class="pricing-grid compact">' + cardsHtml + '</div>';
+    const up = document.getElementById('upgrade-pricing'); if (up) up.innerHTML = fullHtml;
+    const dp = document.getElementById('dash-pricing'); if (dp) dp.innerHTML = fullHtml;
+  },
+  setBilling(period) {
+    state.billingPeriod = period;
+    this.renderPricing();
+  },
+  trackGlow(e, card) {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    card.style.setProperty('--mx', x + 'px');
+    card.style.setProperty('--my', y + 'px');
+  },
+  resetGlow(card) {
+    card.style.removeProperty('--mx');
+    card.style.removeProperty('--my');
   },
   showUpgrade() { this.renderPricing(); Modal.open('modal-upgrade'); },
   saveSettings() {
@@ -1287,12 +1820,13 @@ const Dashboard = {
   }
 };
 
-// ══════════════════ TRIAL MANAGER ══════════════════
+// ══════════════════ TRIAL MANAGER (legacy compat) ══════════════════
 const TrialManager = {
   checkEditorAccess() {
-    const trial = Auth.checkTrial();
+    if (!state.currentSite) return;
+    const frozen = SiteTimer.isFrozen(state.currentSite);
     const overlay = document.getElementById('editor-trial-overlay');
-    if (overlay) overlay.style.display = trial.active ? 'none' : 'flex';
+    if (overlay) overlay.style.display = frozen ? 'flex' : 'none';
   }
 };
 
@@ -1319,7 +1853,7 @@ const Verification = {
       if (!Store.get('signupDate')) Store.set('signupDate', new Date().toISOString());
       Modal.close('modal-verify');
       showToast('Email verified! ✅', 'success');
-      App.showPage('page-onboarding'); Onboard.reset();
+      App.showPage('page-dashboard');
     } else { showToast('Invalid code', 'error'); }
   },
   resend() { showToast(`Code resent: ${this.code}`, 'info'); }
@@ -1338,6 +1872,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // Comment mode click handler
   document.getElementById('editor-canvas')?.addEventListener('click', (e) => Collaboration.addComment(e));
+  // Initialize Deep Edit (AI text/image tools)
+  DeepEdit.init();
   if (window.lucide) lucide.createIcons();
 });
 
