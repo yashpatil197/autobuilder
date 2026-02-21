@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>AutoSite AI — Build Websites with AI</title>
+    <meta name="description"
+        content="Create stunning websites in seconds with AI. Just describe what you want and AutoSite AI builds it for you." />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwindcss.config = { corePlugins: { preflight: false } }</script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+    <!-- ═══════════════ LANDING PAGE ═══════════════ -->
+    <section id="page-landing" class="page active">
+        <nav class="nav-landing">
+            <div class="nav-brand"><span class="brand-icon">⚡</span> AutoSite AI</div>
+            <div class="nav-links">
+                <a href="#" onclick="showSection('features')">Features</a>
+                <a href="#" onclick="showSection('pricing-section')">Pricing</a>
+                <a href="#" onclick="App.showPage('page-auth')">Login</a>
+                <button class="btn btn-primary btn-sm" onclick="App.showPage('page-auth','signup')">Get Started
+                    Free</button>
+            </div>
+            <button class="nav-hamburger" onclick="toggleMobileNav()"><span
+                    class="material-icons-round">menu</span></button>
+        </nav>
+
+        <!-- Hero -->
+        <header class="hero">
+            <div class="hero-badge">🚀 AI-Powered Website Builder</div>
+            <h1>Build Stunning Websites<br /><span class="gradient-text">With Just Words</span></h1>
+            <p class="hero-sub">Describe your dream website and watch AutoSite AI bring it to life in seconds. No coding
+                required.</p>
+            <div class="hero-actions">
+                <button class="btn btn-primary btn-lg" onclick="App.showPage('page-auth','signup')">Start Free Trial
+                    <span class="material-icons-round">arrow_forward</span></button>
+                <button class="btn btn-ghost btn-lg" onclick="App.showPage('page-auth','signup')">Watch Demo <span
+                        class="material-icons-round">play_circle</span></button>
+            </div>
+            <p class="hero-note">30-day free trial · No credit card required</p>
+            <div class="hero-preview">
+                <div class="preview-browser">
+                    <div class="browser-dots"><span></span><span></span><span></span></div>
+                    <div class="browser-url">autosite.ai/preview</div>
+                </div>
+                <div class="preview-body" id="hero-preview-body"></div>
+            </div>
+        </header>
+
+        <!-- Features -->
+        <section class="section" id="features">
+            <h2 class="section-title">Everything You Need to <span class="gradient-text">Launch Online</span></h2>
+            <p class="section-sub">From idea to live website in minutes, not months.</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI Generation</h3>
+                    <p>Describe your website and our AI creates professional layouts, content, and styling instantly.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Visual Editor</h3>
+                    <p>Drag-and-drop sections, edit text inline, and customize every element with our live editor.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Fully Responsive</h3>
+                    <p>Every website looks perfect on desktop, tablet, and mobile. Automatically.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>1-Click Publish</h3>
+                    <p>Instantly publish to a unique URL. Custom domains coming soon.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3>SEO Optimized</h3>
+                    <p>Built-in SEO best practices ensure your site ranks well on search engines.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Analytics</h3>
+                    <p>Track visitors, page views, and engagement from your dashboard.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing -->
+        <section class="section section-dark" id="pricing-section">
+            <h2 class="section-title">Simple, Transparent <span class="gradient-text">Pricing</span></h2>
+            <p class="section-sub">Start free for 30 days. Upgrade anytime.</p>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="pricing-name">Starter</div>
+                    <div class="pricing-price">₹100<span>/mo</span></div>
+                    <ul class="pricing-features">
+                        <li>✓ 1 Website</li>
+                        <li>✓ AI Generation</li>
+                        <li>✓ Basic Editor</li>
+                        <li>✓ Free Subdomain</li>
+                        <li>✓ SSL Certificate</li>
+                    </ul>
+                    <button class="btn btn-outline btn-block" onclick="App.showPage('page-auth','signup')">Start Free
+                        Trial</button>
+                </div>
+                <div class="pricing-card popular">
+                    <div class="popular-badge">Most Popular</div>
+                    <div class="pricing-name">Pro</div>
+                    <div class="pricing-price">₹200<span>/mo</span></div>
+                    <ul class="pricing-features">
+                        <li>✓ 5 Websites</li>
+                        <li>✓ Advanced AI</li>
+                        <li>✓ Full Visual Editor</li>
+                        <li>✓ Custom Domain</li>
+                        <li>✓ Priority Support</li>
+                        <li>✓ Analytics Dashboard</li>
+                    </ul>
+                    <button class="btn btn-primary btn-block" onclick="App.showPage('page-auth','signup')">Start Free
+                        Trial</button>
+                </div>
+                <div class="pricing-card">
+                    <div class="pricing-name">Agency</div>
+                    <div class="pricing-price">₹300<span>/mo</span></div>
+                    <ul class="pricing-features">
+                        <li>✓ Unlimited Websites</li>
+                        <li>✓ White-label</li>
+                        <li>✓ Full Visual Editor</li>
+                        <li>✓ Custom Domains</li>
+                        <li>✓ Team Collaboration</li>
+                        <li>✓ Code Export</li>
+                    </ul>
+                    <button class="btn btn-outline btn-block" onclick="App.showPage('page-auth','signup')">Start Free
+                        Trial</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="landing-footer">
+            <div class="footer-brand"><span class="brand-icon">⚡</span> AutoSite AI</div>
+            <p>© 2026 AutoSite AI. All rights reserved.</p>
+        </footer>
+    </section>
+
+    <!-- ═══════════════ AUTH PAGE ═══════════════ -->
+    <section id="page-auth" class="page">
+        <div class="auth-container">
+            <div class="auth-left">
+                <div class="auth-brand" onclick="App.showPage('page-landing')"><span class="brand-icon">⚡</span>
+                    AutoSite AI</div>
+                <h2 class="auth-tagline">Build your website<br /><span class="gradient-text">in seconds</span></h2>
+                <p>Join 50,000+ creators already using AutoSite AI</p>
+            </div>
+            <div class="auth-right">
+                <div class="auth-card">
+                    <h2 id="auth-title">Create your account</h2>
+                    <p class="auth-subtitle" id="auth-subtitle">Start your 30-day free trial</p>
+                    <div id="auth-form-area">
+                        <div id="signup-fields">
+                            <input type="text" id="auth-name" class="input" placeholder="Full Name" />
+                        </div>
+                        <input type="email" id="auth-email" class="input" placeholder="Email address" />
+                        <input type="password" id="auth-password" class="input" placeholder="Password" />
+                        <button class="btn btn-primary btn-block btn-lg" id="auth-submit" onclick="Auth.submit()">Create
+                            Account</button>
+                        <div class="auth-divider"><span>or continue with</span></div>
+                        <div class="social-btns">
+                            <button class="btn btn-social" onclick="Auth.socialLogin('google')"><img
+                                    src="https://www.google.com/favicon.ico" alt="G" width="18" /> Google</button>
+                            <button class="btn btn-social" onclick="Auth.socialLogin('github')">🐙 GitHub</button>
+                        </div>
+                    </div>
+                    <p class="auth-toggle" id="auth-toggle">Already have an account? <a href="#"
+                            onclick="Auth.toggleMode()">Log in</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ ONBOARDING ═══════════════ -->
+    <section id="page-onboarding" class="page">
+        <div class="onboard-container">
+            <div class="onboard-progress">
+                <div class="onboard-progress-bar" id="onboard-bar"></div>
+            </div>
+            <div class="onboard-brand"><span class="brand-icon">⚡</span> AutoSite AI</div>
+
+            <!-- Step 1: Business Type -->
+            <div class="onboard-step active" id="onboard-1">
+                <h2>What type of website do you need?</h2>
+                <p>Select the category that best fits your project.</p>
+                <div class="onboard-options" id="biz-types">
+                    <div class="option-card" data-value="business" onclick="Onboard.select(this,'bizType')">
+                        <span>🏢</span>Business
+                    </div>
+                    <div class="option-card" data-value="portfolio" onclick="Onboard.select(this,'bizType')">
+                        <span>💼</span>Portfolio
+                    </div>
+                    <div class="option-card" data-value="ecommerce" onclick="Onboard.select(this,'bizType')">
+                        <span>🛒</span>E-Commerce
+                    </div>
+                    <div class="option-card" data-value="blog" onclick="Onboard.select(this,'bizType')">
+                        <span>📝</span>Blog
+                    </div>
+                    <div class="option-card" data-value="restaurant" onclick="Onboard.select(this,'bizType')">
+                        <span>🍽️</span>Restaurant
+                    </div>
+                    <div class="option-card" data-value="saas" onclick="Onboard.select(this,'bizType')">
+                        <span>💻</span>SaaS / App
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-lg" onclick="Onboard.next()">Continue</button>
+            </div>
+
+            <!-- Step 2: Design Preferences -->
+            <div class="onboard-step" id="onboard-2">
+                <h2>Choose your design style</h2>
+                <p>Pick the aesthetic that resonates with your brand.</p>
+                <div class="onboard-options" id="design-styles">
+                    <div class="option-card" data-value="modern" onclick="Onboard.select(this,'designStyle')">
+                        <span>✨</span>Modern & Clean
+                    </div>
+                    <div class="option-card" data-value="bold" onclick="Onboard.select(this,'designStyle')">
+                        <span>🔥</span>Bold & Vibrant
+                    </div>
+                    <div class="option-card" data-value="minimal" onclick="Onboard.select(this,'designStyle')">
+                        <span>🤍</span>Minimal
+                    </div>
+                    <div class="option-card" data-value="dark" onclick="Onboard.select(this,'designStyle')">
+                        <span>🌙</span>Dark & Sleek
+                    </div>
+                    <div class="option-card" data-value="playful" onclick="Onboard.select(this,'designStyle')">
+                        <span>🎨</span>Playful
+                    </div>
+                    <div class="option-card" data-value="elegant" onclick="Onboard.select(this,'designStyle')">
+                        <span>👑</span>Elegant
+                    </div>
+                </div>
+                <div class="onboard-nav">
+                    <button class="btn btn-ghost" onclick="Onboard.prev()">Back</button>
+                    <button class="btn btn-primary btn-lg" onclick="Onboard.next()">Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 3: AI Prompt -->
+            <div class="onboard-step" id="onboard-3">
+                <h2>Describe your dream website</h2>
+                <p>Tell our AI exactly what you want. Be as detailed as you like!</p>
+                <textarea id="ai-prompt" class="input textarea" rows="6"
+                    placeholder="e.g. I need a modern portfolio website for a freelance photographer. Include a hero section with a fullscreen image, a gallery grid, an about me section, testimonials, and a contact form. Use dark tones with gold accents."></textarea>
+                <div class="prompt-suggestions">
+                    <span onclick="Onboard.useSuggestion(this)">A bakery landing page with warm colors and menu
+                        section</span>
+                    <span onclick="Onboard.useSuggestion(this)">A tech startup site with pricing table and feature
+                        grid</span>
+                    <span onclick="Onboard.useSuggestion(this)">A personal blog with sidebar and newsletter
+                        signup</span>
+                </div>
+                <div class="onboard-nav">
+                    <button class="btn btn-ghost" onclick="Onboard.prev()">Back</button>
+                    <button class="btn btn-primary btn-lg" onclick="Onboard.generate()">
+                        <span class="material-icons-round">auto_awesome</span> Generate My Website
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div class="onboard-step" id="onboard-loading">
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <h2>Building your website...</h2>
+                    <p id="loading-status">Analyzing your requirements...</p>
+                    <div class="loading-steps">
+                        <div class="load-step active" id="ls-1">✓ Analyzing prompt</div>
+                        <div class="load-step" id="ls-2">○ Generating layout</div>
+                        <div class="load-step" id="ls-3">○ Creating content</div>
+                        <div class="load-step" id="ls-4">○ Applying styles</div>
+                        <div class="load-step" id="ls-5">○ Finalizing</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ DASHBOARD ═══════════════ -->
+    <section id="page-dashboard" class="page">
+        <div class="dash-layout">
+            <aside class="dash-sidebar">
+                <div class="dash-brand"><span class="brand-icon">⚡</span> AutoSite</div>
+                <nav class="dash-nav">
+                    <a class="dash-link active" data-tab="dash-sites" onclick="Dashboard.switchTab(this)"><span
+                            class="material-icons-round">language</span>My Sites</a>
+                    <a class="dash-link" data-tab="dash-analytics" onclick="Dashboard.switchTab(this)"><span
+                            class="material-icons-round">analytics</span>Analytics</a>
+                    <a class="dash-link" data-tab="dash-subscription" onclick="Dashboard.switchTab(this)"><span
+                            class="material-icons-round">credit_card</span>Subscription</a>
+                    <a class="dash-link" data-tab="dash-settings" onclick="Dashboard.switchTab(this)"><span
+                            class="material-icons-round">settings</span>Settings</a>
+                </nav>
+                <div class="dash-trial-widget" id="trial-widget">
+                    <div class="trial-icon">⏳</div>
+                    <p class="trial-text"><strong id="trial-days">30</strong> days left</p>
+                    <div class="trial-bar">
+                        <div class="trial-bar-fill" id="trial-bar-fill"></div>
+                    </div>
+                    <button class="btn btn-primary btn-sm btn-block" onclick="Dashboard.showUpgrade()">Upgrade
+                        Now</button>
+                </div>
+                <div class="dash-user-widget">
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <div class="user-info"><span id="user-name-display">User</span><small>Free Trial</small></div>
+                    <button class="btn-icon" onclick="Auth.logout()" title="Logout"><span
+                            class="material-icons-round">logout</span></button>
+                </div>
+            </aside>
+            <main class="dash-main">
+                <!-- Sites Tab -->
+                <div class="dash-tab active" id="dash-sites">
+                    <div class="dash-header">
+                        <h1>My Websites</h1>
+                        <button class="btn btn-primary" onclick="App.showPage('page-onboarding');Onboard.reset()"><span
+                                class="material-icons-round">add</span> New Site</button>
+                    </div>
+                    <div class="sites-grid" id="sites-grid"></div>
+                    <div class="empty-state" id="empty-sites">
+                        <span class="material-icons-round" style="font-size:64px;color:var(--primary)">web</span>
+                        <h3>No websites yet</h3>
+                        <p>Create your first AI-powered website in seconds.</p>
+                        <button class="btn btn-primary btn-lg"
+                            onclick="App.showPage('page-onboarding');Onboard.reset()">Create Website</button>
+                    </div>
+                </div>
+                <!-- Analytics Tab -->
+                <div class="dash-tab" id="dash-analytics">
+                    <div class="dash-header">
+                        <h1>Analytics</h1>
+                    </div>
+                    <div class="analytics-cards">
+                        <div class="stat-card">
+                            <div class="stat-icon blue"><span class="material-icons-round">visibility</span></div>
+                            <div><small>Total Views</small>
+                                <h2 id="stat-views">0</h2>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green"><span class="material-icons-round">people</span></div>
+                            <div><small>Visitors</small>
+                                <h2 id="stat-visitors">0</h2>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon purple"><span class="material-icons-round">touch_app</span></div>
+                            <div><small>Clicks</small>
+                                <h2 id="stat-clicks">0</h2>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon orange"><span class="material-icons-round">schedule</span></div>
+                            <div><small>Avg. Time</small>
+                                <h2 id="stat-time">0s</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-placeholder">
+                        <div class="chart-bars" id="chart-bars"></div>
+                        <p>Last 7 days page views</p>
+                    </div>
+                </div>
+                <!-- Subscription Tab -->
+                <div class="dash-tab" id="dash-subscription">
+                    <div class="dash-header">
+                        <h1>Subscription</h1>
+                    </div>
+                    <div class="sub-current">
+                        <h3>Current Plan: <span id="current-plan-name" class="gradient-text">Free Trial</span></h3>
+                        <p id="current-plan-desc">Your trial expires on <span id="trial-end-date">—</span></p>
+                    </div>
+                    <div class="pricing-grid compact" id="dash-pricing"></div>
+                </div>
+                <!-- Settings Tab -->
+                <div class="dash-tab" id="dash-settings">
+                    <div class="dash-header">
+                        <h1>Settings</h1>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Profile</h3>
+                        <input type="text" class="input" id="settings-name" placeholder="Full Name" />
+                        <input type="email" class="input" id="settings-email" placeholder="Email" disabled />
+                        <button class="btn btn-primary" onclick="Dashboard.saveSettings()">Save Changes</button>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Danger Zone</h3>
+                        <button class="btn btn-danger" onclick="Auth.deleteAccount()">Delete Account</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <!-- ═══════════════ VISUAL EDITOR ═══════════════ -->
+    <section id="page-editor" class="page">
+        <div class="editor-layout">
+            <div class="editor-topbar">
+                <div class="editor-topbar-left">
+                    <button class="btn-icon" onclick="App.showPage('page-dashboard')" title="Back"><span
+                            class="material-icons-round">arrow_back</span></button>
+                    <span class="editor-site-name" id="editor-site-name">My Website</span>
+                    <span class="status-badge status-draft" id="site-status-badge">Draft</span>
+                </div>
+                <div class="editor-topbar-center">
+                    <button class="btn-icon" id="btn-undo" onclick="History.undo()" title="Undo (Ctrl+Z)"><span
+                            class="material-icons-round">undo</span></button>
+                    <button class="btn-icon" id="btn-redo" onclick="History.redo()" title="Redo (Ctrl+Y)"><span
+                            class="material-icons-round">redo</span></button>
+                    <div class="topbar-divider"></div>
+                    <button class="btn-icon device-btn active" data-device="desktop"
+                        onclick="Editor.setDevice('desktop')"><span
+                            class="material-icons-round">computer</span></button>
+                    <button class="btn-icon device-btn" data-device="tablet" onclick="Editor.setDevice('tablet')"><span
+                            class="material-icons-round">tablet_mac</span></button>
+                    <button class="btn-icon device-btn" data-device="mobile" onclick="Editor.setDevice('mobile')"><span
+                            class="material-icons-round">phone_iphone</span></button>
+                </div>
+                <div class="editor-topbar-right">
+                    <button class="btn-icon hidden" id="btn-comment-mode" onclick="Collaboration.toggleCommentMode()"
+                        title="Comment Mode"><span class="material-icons-round">chat_bubble</span></button>
+                    <button class="btn-icon" onclick="Collaboration.getShareLink()" title="Share Preview Link"><span
+                            class="material-icons-round">share</span></button>
+                    <button class="btn-icon" onclick="SEOManager.open()" title="SEO Settings"><span
+                            class="material-icons-round">search</span></button>
+                    <button class="btn btn-ghost btn-sm hidden" id="btn-download-code"
+                        onclick="PlanManager.downloadCode()"><span class="material-icons-round"
+                            style="font-size:16px">download</span> Export</button>
+                    <select class="status-select" onchange="Editor.setStatus(this.value)" id="status-select">
+                        <option value="draft">Draft</option>
+                        <option value="staging">Staging</option>
+                        <option value="live">Live</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="Editor.publish()"><span
+                            class="material-icons-round">rocket_launch</span> Publish</button>
+                </div>
+            </div>
+            <div class="editor-body">
+                <div class="editor-sidebar-left">
+                    <div class="sidebar-section">
+                        <h4>Pages</h4>
+                        <div id="editor-pages-list"></div>
+                        <button class="btn btn-ghost btn-sm btn-block" onclick="Editor.addPage()"><span
+                                class="material-icons-round">add</span> Add Page</button>
+                    </div>
+                    <div class="sidebar-section">
+                        <h4>Add Section</h4>
+                        <div class="section-blocks" id="section-blocks">
+                            <div class="block-item" draggable="true" data-type="hero"
+                                onclick="Editor.addSection('hero')" ondragstart="Editor.dragStart(event)"><span
+                                    class="material-icons-round">view_carousel</span>Hero</div>
+                            <div class="block-item" draggable="true" data-type="features"
+                                onclick="Editor.addSection('features')" ondragstart="Editor.dragStart(event)"><span
+                                    class="material-icons-round">grid_view</span>Features</div>
+                            <div class="block-item" draggable="true" data-type="about"
+                                onclick="Editor.addSection('about')" ondragstart="Editor.dragStart(event)"><span
+                                    class="material-icons-round">info</span>About</div>
+                            <div class="block-item" draggable="true" data-type="gallery"
+                                onclick="Editor.addSection('gallery')" ondragstart="Editor.dragStart(event)"><span
+                                    class="material-icons-round">photo_library</span>Gallery</div>
+                            <div class="block-item" draggable="true" data-type="testimonials"
+                                onclick="Editor.addSection('testimonials')" ondragstart="Editor.dragStart(event)"><span
+                                    class="material-icons-round">format_quote</span>Testimonials</div>
+                            <div class="block-item" draggable="true" data-type="pricing"
+                                onclick="Editor.addSection('pricing')" ondragstart="Editor.dragStart(event)"><span
+                                    class="material-icons-round">payments</span>Pricing</div>
+                            <div class="block-item" draggable="true" data-type="contact"
+                                onclick="Editor.addSection('contact')" ondragstart="Editor.dragStart(event)"><span
+                                    class="material-icons-round">mail</span>Contact</div>
+                            <div class="block-item" draggable="true" data-type="form"
+                                onclick="Editor.addSection('form')" ondragstart="Editor.dragStart(event)"><span
+                                    class="material-icons-round">dynamic_form</span>Form</div>
+                            <div class="block-item" draggable="true" data-type="cta" onclick="Editor.addSection('cta')"
+                                ondragstart="Editor.dragStart(event)"><span
+                                    class="material-icons-round">campaign</span>CTA</div>
+                            <div class="block-item" draggable="true" data-type="footer"
+                                onclick="Editor.addSection('footer')" ondragstart="Editor.dragStart(event)"><span
+                                    class="material-icons-round">bottom_navigation</span>Footer</div>
+                        </div>
+                    </div>
+                    <div class="sidebar-section">
+                        <h4>Components <small style="color:var(--text3)">(Agency)</small></h4>
+                        <div id="components-list">
+                            <p style="font-size:12px;color:var(--text3)">No saved components yet.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="editor-canvas-wrap">
+                    <div class="editor-canvas" id="editor-canvas" ondrop="Editor.drop(event)"
+                        ondragover="Editor.dragOver(event)"></div>
+                </div>
+                <div class="editor-sidebar-right">
+                    <div class="sidebar-section">
+                        <h4>Theme Preset</h4>
+                        <select id="theme-preset" class="input" onchange="Editor.applyPreset(this.value)">
+                            <option value="modern">Modern</option>
+                            <option value="bold">Bold</option>
+                            <option value="minimal">Minimal</option>
+                            <option value="dark">Dark</option>
+                            <option value="playful">Playful</option>
+                            <option value="elegant">Elegant</option>
+                        </select>
+                    </div>
+                    <div class="sidebar-section">
+                        <h4>Colors</h4>
+                        <label class="input-label">Primary</label>
+                        <input type="color" id="theme-primary" class="color-input" value="#6C5CE7"
+                            onchange="Editor.updateTheme()" />
+                        <label class="input-label">Background</label>
+                        <input type="color" id="theme-bg" class="color-input" value="#0a0a1a"
+                            onchange="Editor.updateTheme()" />
+                        <label class="input-label">Text</label>
+                        <input type="color" id="theme-text" class="color-input" value="#ffffff"
+                            onchange="Editor.updateTheme()" />
+                    </div>
+                    <div class="sidebar-section">
+                        <h4>Typography</h4>
+                        <select id="theme-font" class="input" onchange="Editor.updateTheme()">
+                            <option value="Inter">Inter</option>
+                            <option value="Roboto">Roboto</option>
+                            <option value="Poppins">Poppins</option>
+                            <option value="Playfair Display">Playfair Display</option>
+                            <option value="Outfit">Outfit</option>
+                        </select>
+                    </div>
+                    <div class="sidebar-section">
+                        <h4>Animation</h4>
+                        <select id="theme-animation" class="input" onchange="Editor.updateTheme()">
+                            <option value="fadeIn">Fade In</option>
+                            <option value="slideUp">Slide Up</option>
+                            <option value="zoomIn">Zoom In</option>
+                            <option value="none">None</option>
+                        </select>
+                        <label class="input-label" style="margin-top:8px">Section Padding</label>
+                        <input type="range" id="theme-spacing" class="input" min="40" max="120" value="80"
+                            onchange="Editor.updateTheme()" style="width:100%" />
+                    </div>
+                    <div class="sidebar-section">
+                        <h4>Versions</h4>
+                        <div id="version-list">
+                            <p style="font-size:12px;color:var(--text3)">No versions yet.</p>
+                        </div>
+                    </div>
+                    <!-- AI Chat -->
+                    <div class="sidebar-section ai-chat-section">
+                        <h4><span class="material-icons-round"
+                                style="font-size:14px;vertical-align:middle">smart_toy</span> AI Assistant</h4>
+                        <div class="ai-chat-messages" id="ai-chat-messages">
+                            <div class="chat-msg ai">Hi! Try: <em>"apply elegant theme"</em>, <em>"rewrite hero in
+                                    luxury voice"</em>, or <em>"suggest improvements"</em></div>
+                        </div>
+                        <div class="ai-chat-input-wrap">
+                            <input type="text" id="ai-chat-input" class="input" placeholder="Type a command..."
+                                onkeydown="if(event.key==='Enter')AIChat.send()" />
+                            <button class="btn-icon ai-chat-send" onclick="AIChat.send()"><span
+                                    class="material-icons-round" style="font-size:16px">send</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Trial Expired Overlay -->
+        <div class="editor-trial-overlay" id="editor-trial-overlay" style="display:none">
+            <div class="overlay-content">
+                <span class="material-icons-round" style="font-size:64px;color:#e74c3c">timer_off</span>
+                <h2 style="font-size:28px;font-weight:800;margin:16px 0 8px">Trial Expired</h2>
+                <p style="color:var(--text2);margin-bottom:24px">Upgrade to continue editing and publishing.</p>
+                <button class="btn btn-primary btn-lg" onclick="Dashboard.showUpgrade()">View Plans</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ PUBLISHED SITE VIEW ═══════════════ -->
+    <section id="page-published" class="page">
+        <div class="published-bar">
+            <span>🌐 Published at: <a id="published-url" href="#" target="_blank">—</a></span>
+            <button class="btn btn-ghost btn-sm" onclick="App.showPage('page-editor')">← Back to Editor</button>
+        </div>
+        <div class="published-frame" id="published-frame"></div>
+    </section>
+
+    <!-- ═══════════════ UPGRADE MODAL ═══════════════ -->
+    <div class="modal-overlay" id="modal-upgrade">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3>Upgrade Your Plan</h3>
+                <button class="btn-icon" onclick="Modal.close('modal-upgrade')"><span
+                        class="material-icons-round">close</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="pricing-grid compact" id="upgrade-pricing"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ TRIAL EXPIRED MODAL ═══════════════ -->
+    <div class="modal-overlay" id="modal-trial-expired">
+        <div class="modal-card">
+            <div class="modal-body" style="text-align:center;padding:48px 32px;">
+                <span class="material-icons-round" style="font-size:72px;color:#e74c3c;">timer_off</span>
+                <h2 style="margin-top:16px;">Trial Expired</h2>
+                <p>Your 30-day free trial has ended. Upgrade to continue editing your websites.</p>
+                <button class="btn btn-primary btn-lg"
+                    onclick="Modal.close('modal-trial-expired');Dashboard.showUpgrade()">View Plans</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ EMAIL VERIFICATION MODAL ═══════════════ -->
+    <div class="modal-overlay" id="modal-verify">
+        <div class="modal-card">
+            <div class="modal-body" style="text-align:center;padding:48px 32px">
+                <div class="verify-icon-wrap">
+                    <i data-lucide="mail-check" style="width:56px;height:56px;color:var(--primary)"></i>
+                </div>
+                <h2 style="margin-top:20px;font-size:24px;font-weight:800">Verify Your Email</h2>
+                <p style="color:var(--text2);margin:8px 0 24px" id="verify-email-msg">We sent a 6-digit code to your
+                    email</p>
+                <div class="verify-code-group">
+                    <input type="text" maxlength="1" class="verify-code-input" oninput="Verification.autoFocus(this)" />
+                    <input type="text" maxlength="1" class="verify-code-input" oninput="Verification.autoFocus(this)" />
+                    <input type="text" maxlength="1" class="verify-code-input" oninput="Verification.autoFocus(this)" />
+                    <input type="text" maxlength="1" class="verify-code-input" oninput="Verification.autoFocus(this)" />
+                    <input type="text" maxlength="1" class="verify-code-input" oninput="Verification.autoFocus(this)" />
+                    <input type="text" maxlength="1" class="verify-code-input" oninput="Verification.autoFocus(this)" />
+                </div>
+                <button class="btn btn-primary btn-lg btn-block" style="margin-top:24px"
+                    onclick="Verification.confirm()"><i data-lucide="check-circle" style="width:18px;height:18px"></i>
+                    Verify & Continue</button>
+                <p style="margin-top:16px;font-size:13px;color:var(--text3)">Didn't receive it? <a href="#"
+                        onclick="Verification.resend()">Resend code</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ SEO MODAL ═══════════════ -->
+    <div class="modal-overlay" id="modal-seo">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>SEO Settings</h3>
+                <button class="btn-icon" onclick="Modal.close('modal-seo')"><span
+                        class="material-icons-round">close</span></button>
+            </div>
+            <div class="modal-body">
+                <label class="input-label">Page Title</label>
+                <input type="text" id="seo-title" class="input" placeholder="My Awesome Website" />
+                <label class="input-label">Meta Description</label>
+                <textarea id="seo-desc" class="input textarea" rows="3"
+                    placeholder="Brief description for search engines..."></textarea>
+                <label class="input-label">OG Image URL</label>
+                <input type="text" id="seo-og" class="input" placeholder="https://example.com/image.png" />
+                <button class="btn btn-primary btn-block" style="margin-top:16px" onclick="SEOManager.save()">Save SEO
+                    Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ FORM SUBMISSIONS MODAL ═══════════════ -->
+    <div class="modal-overlay" id="modal-submissions">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3>Form Submissions</h3>
+                <button class="btn-icon" onclick="Modal.close('modal-submissions')"><span
+                        class="material-icons-round">close</span></button>
+            </div>
+            <div class="modal-body" id="submissions-content"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ CONTENT REWRITER POPUP ═══════════════ -->
+    <div id="rewriter-popup" class="rewriter-popup" style="display:none">
+        <div class="rewriter-header">
+            <span><i data-lucide="sparkles" style="width:16px;height:16px;display:inline;vertical-align:middle"></i> AI
+                Rewrite</span>
+            <button class="btn-icon" onclick="ContentRewriter.hidePopup()" style="padding:4px"><i data-lucide="x"
+                    style="width:14px;height:14px"></i></button>
+        </div>
+        <div id="rewriter-variations"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
